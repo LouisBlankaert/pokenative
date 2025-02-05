@@ -1,39 +1,56 @@
-import {useQuery, useInfiniteQuery} from "@tanstack/react-query"
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
-const endpoint = "https://pokeapi.co/api/v2"
+const endpoint = "https://pokeapi.co/api/v2";
 
+// Simple query hook
 export function useFetchQuery(path) {
     return useQuery({
         queryKey: [path],
         queryFn: async () => {
-            await wait(1)
-            return fetch(endpoint + path).then(res => res.json())
-        }
-    })
+            try {
+                const response = await fetch(endpoint + path);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            } catch (error) {
+                throw new Error(`Fetch error: ${error.message}`);
+            }
+        },
+        // Optional: Refetch on window focus
+        refetchOnWindowFocus: false,
+    });
 }
 
+// Infinite scroll query hook
 export function useInfiniteFetchQuery(path) {
     return useInfiniteQuery({
         queryKey: [path],
         initialPageParam: endpoint + path,
-        queryFn: async ({pageParam}) => {
-            await wait(1)
-            return fetch(pageParam, {
-                headers: {
-                    accept: "application/json",
+        queryFn: async ({ pageParam }) => {
+            try {
+                const response = await fetch(pageParam, {
+                    headers: {
+                        accept: "application/json",
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            }).then(res => res.json())
-        }, 
-        getNextPageParam: (lastPage) => {
-            if ("next" in lastPage){
-                return lastPage.next
-            } else {
-                return null
+                return response.json();
+            } catch (error) {
+                throw new Error(`Fetch error: ${error.message}`);
             }
-        }
-    })
+        },
+        getNextPageParam: (lastPage) => {
+            return lastPage.next ? lastPage.next : null;
+        },
+        // Optional: Refetch on window focus
+        refetchOnWindowFocus: false,
+    });
 }
 
-function wait (duration) {
+// Wait function (optional for testing or debugging purposes)
+function wait(duration) {
     return new Promise(resolve => setTimeout(resolve, duration * 1000));
 }
